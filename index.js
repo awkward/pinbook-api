@@ -106,7 +106,7 @@ app.get('/setup', function(req, res) {
 app.get('/pins', function(req, res) {
   const token = tokenFromRequest(req)
 
-  slack.pins.list({token, channel: 'C024FUS8M'}, (err, data) => {
+  slack.pins.list({token, channel: req.query.channel}, (err, data) => {
     // early return if error
     if(err) {
       res.send({
