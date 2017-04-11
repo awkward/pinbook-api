@@ -1,7 +1,10 @@
 const slack = require('slack')
 const express = require('express')
 const crypto = require('crypto')
+const cors = require('cors')
 const app = express()
+
+app.use(cors())
 
 require('dotenv').config()
 
@@ -45,15 +48,11 @@ app.get('/auth', function(req, res) {
 
     // early return if something has gone wrong
     if(err) {
-      console.error('Got an error while authorizing user', err)
-
       return res.send({
         success: false,
         message: err.toString(),
-      });
+      })
     }
-
-    console.log('got sum stuffz: ', data);
 
     res.send({
       success: true,
@@ -68,9 +67,11 @@ const tokenFromRequest = function(req) {
   return decrypt(req.headers.token);
 }
 
-app.get('/channels', function(req, res) {
+app.get('/setup', function(req, res) {
+
   const token = tokenFromRequest(req)
-  slack.channels.list({token}, (err, data) => {
+
+  slack.channels.list({token}, (err, channels) => {
 
     // early return if error
     if(err) {
@@ -80,29 +81,28 @@ app.get('/channels', function(req, res) {
       })
     }
 
-    // tsall good.
-    res.send(data)
+    slack.users.list({token}, (err, users) => {
 
-  })
-});
+      // early return if error
+      if(err) {
+        res.send({
+          success: false,
+          message: err.toString(),
+        })
+      }
 
-app.get('/users', function(req, res) {
-  const token = tokenFromRequest(req)
-  slack.users.list({token}, (err, data) => {
-
-    // early return if error
-    if(err) {
+      // tsall good.
       res.send({
-        success: false,
-        message: err.toString(),
+        channels: channels.channels,
+        users: users.members,
       })
-    }
+    })
 
-    // tsall good.
-    res.send(data)
   })
+
 })
 
+// yeah.
 app.get('/pins', function(req, res) {
   const token = tokenFromRequest(req)
 
