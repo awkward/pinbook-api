@@ -10,7 +10,7 @@ const CONFIG = {
   CLIENT_SECRET: process.env.CLIENT_SECRET,
   REDIRECT_URI: 'http://localhost:3000/auth',
   SCOPE: 'pins:read,reactions:read,channels:read,users:read',
-  PORT: 3000,
+  PORT: process.env.PORT,
   CRYPTO_PASS: process.env.CRYPTO_PASS,
 }
 
@@ -33,6 +33,10 @@ const decrypt = function(data) {
 // route to redirect to slacks auth page
 app.get('/auth/request', function(req, res){
   res.redirect(AUTH_URI)
+})
+
+app.get('/', function(req, res) {
+    res.send('noot noot 😼')
 })
 
 app.get('/auth', function(req, res) {
