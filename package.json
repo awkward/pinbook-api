@@ -4,6 +4,9 @@
   "description": "Slacks pinned messages as a book",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "crypto": "^0.0.3",
     "dotenv": "^4.0.0",
