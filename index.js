@@ -1,40 +1,21 @@
 const slack = require('slack')
 const express = require('express')
-const crypto = require('crypto')
+
 const cors = require('cors')
 const app = express()
 
+const config = require('./config.js')
+const crypto = require('./crypto.js')
+const slackTokenMiddleware = require('./middleware/slacktoken.js')
+
 app.use(cors())
+app.use(slackTokenMiddleware)
 
-require('dotenv').config()
-
-const CONFIG = {
-  CLIENT_ID: process.env.CLIENT_ID,
-  CLIENT_SECRET: process.env.CLIENT_SECRET,
-  REDIRECT_URI: process.env.REDIRECT_URI,
-  SCOPE: 'pins:read,reactions:read,channels:read,users:read',
-  PORT: process.env.PORT,
-  CRYPTO_PASS: process.env.CRYPTO_PASS,
-}
-
-const AUTH_URI = `https://slack.com/oauth/authorize?&client_id=${CONFIG.CLIENT_ID}&scope=${CONFIG.SCOPE}&redirect_uri=${CONFIG.REDIRECT_URI}`
-
-const encrypt = function(data) {
-  const cipher = crypto.createCipher('aes-256-ctr', CONFIG.CRYPTO_PASS);
-  var crypted = cipher.update(data,'utf8','hex')
-  crypted += cipher.final('hex')
-  return crypted
-}
-
-const decrypt = function(data) {
-  const cipher = crypto.createCipher('aes-256-ctr', CONFIG.CRYPTO_PASS);
-  let dec = cipher.update(data,'hex','utf8')
-  dec += cipher.final('utf8')
-  return dec
-}
+// extract controller logic to separate well documented files
 
 // route to redirect to slacks auth page
 app.get('/auth/request', function(req, res){
+  const AUTH_URI = `https://slack.com/oauth/authorize?&client_id=${config.CLIENT_ID}&scope=${config.SCOPE}&redirect_uri=${config.REDIRECT_URI}`
   res.redirect(AUTH_URI)
 })
 
@@ -44,11 +25,11 @@ app.get('/', function(req, res) {
 
 app.get('/auth', function(req, res) {
   // trade authorize code for access token
-  slack.oauth.access({client_id: CONFIG.CLIENT_ID, client_secret: CONFIG.CLIENT_SECRET, code: req.query.code, redirect_uri: CONFIG.REDIRECT_URI}, (err, data) => {
+  slack.oauth.access({client_id: config.CLIENT_ID, client_secret: config.CLIENT_SECRET, code: req.query.code, redirect_uri: config.REDIRECT_URI}, (err, data) => {
 
     // early return if something has gone wrong
     if(err) {
-      return res.send({
+      return res.status(406).send({
         success: false,
         message: err.toString(),
       })
@@ -56,36 +37,30 @@ app.get('/auth', function(req, res) {
 
     res.send({
       success: true,
-      token: encrypt(data.access_token),
+      token: crypto.encrypt(data.access_token),
     })
 
   })
 
 })
 
-const tokenFromRequest = function(req) {
-  return decrypt(req.headers.token);
-}
-
 app.get('/setup', function(req, res) {
 
-  const token = tokenFromRequest(req)
-
-  slack.channels.list({token}, (err, channels) => {
+  slack.channels.list({token: req.slackToken}, (err, channels) => {
 
     // early return if error
     if(err) {
-      res.send({
+      res.status(406).send({
         success: false,
         message: err.toString(),
       })
     }
 
-    slack.users.list({token}, (err, users) => {
+    slack.users.list({token: req.slackToken}, (err, users) => {
 
       // early return if error
       if(err) {
-        res.send({
+        res.status(406).send({
           success: false,
           message: err.toString(),
         })
@@ -104,12 +79,11 @@ app.get('/setup', function(req, res) {
 
 // yeah.
 app.get('/pins', function(req, res) {
-  const token = tokenFromRequest(req)
 
-  slack.pins.list({token, channel: req.query.channel}, (err, data) => {
+  slack.pins.list({token: req.slackToken, channel: req.query.channel}, (err, data) => {
     // early return if error
     if(err) {
-      res.send({
+      res.status(406).send({
         success: false,
         message: err.toString(),
       })
@@ -121,4 +95,4 @@ app.get('/pins', function(req, res) {
 });
 
 // start node server
-app.listen(CONFIG.PORT);
+app.listen(config.PORT);
