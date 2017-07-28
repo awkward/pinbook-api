@@ -9,6 +9,7 @@ const defaultController = require('./controllers/default.js')
 const authController = require('./controllers/auth.js')
 const setupController = require('./controllers/setup.js')
 const pinsController = require('./controllers/pins.js')
+const emojiController = require('./controllers/emoji.js')
 
 // setup app and configure middleware
 const app = express()
@@ -21,6 +22,7 @@ app.get('/auth/request', authController.request)
 app.get('/auth', authController.auth)
 app.get('/setup', setupController.setup)
 app.get('/pins', pinsController.index)
+app.get('/emoji', emojiController.index)
 
 // start express server
 app.listen(config.PORT)
